@@ -1,7 +1,5 @@
 import asyncio
 import logging
-import bot.handlers.commands
-import bot.handlers.jobs
 import os
 import sys
 
@@ -10,9 +8,9 @@ from aiogram.enums import ParseMode
 from aiogram.types import BotCommand
 
 from config import TELEGRAM_TOKEN
-# from bot.handlers import commands, jobs  # ЗАКОММЕНТИРУЙТЕ ИЛИ УДАЛИТЕ ЭТУ СТРОКУ
 from bot.middlewares.throttling import ThrottlingMiddleware
 from bot.utils.db import create_db
+from bot.handlers import commands, jobs  # Импортируем handlers
 
 sys.path.append(os.getcwd())
 
@@ -34,6 +32,9 @@ async def set_commands(bot: Bot):
         BotCommand(command="filters", description="Настроить фильтры"),
         BotCommand(command="pause", description="Приостановить автоподачу"),
         BotCommand(command="resume", description="Возобновить автоподачу"),
+        BotCommand(command="set_keywords", description="Установить ключевые слова"),
+        BotCommand(command="set_min_budget", description="Установить минимальный бюджет"),
+        BotCommand(command="set_job_type", description="Установить тип проекта"),
     ]
     await bot.set_my_commands(commands)
 
@@ -45,8 +46,11 @@ async def main():
     await set_commands(bot)
 
     # Регистрация handlers
-    dp.include_router(bot.handlers.commands.router)
-    dp.include_router(bot.handlers.jobs.router)
+    dp.include_router(commands.router)
+    dp.include_router(jobs.router)
+
+    # Запуск процесса обработки вакансий
+    asyncio.create_task(jobs.process_jobs(bot))
 
     # Запуск polling
     try:
