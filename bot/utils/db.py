@@ -1,48 +1,52 @@
 import sqlite3
 import os
+import asyncio
 from dotenv import load_dotenv
 
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL") or "upwork_bot.db"
 
-def create_db():
+async def create_db():
     """Creates the database and tables if they don't exist."""
-    conn = sqlite3.connect(DATABASE_URL)
-    cursor = conn.cursor()
+    async def _create_db():
+        conn = sqlite3.connect(DATABASE_URL)
+        cursor = conn.cursor()
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS jobs (
-            id TEXT PRIMARY KEY,
-            title TEXT,
-            description TEXT,
-            url TEXT,
-            budget REAL,
-            skills TEXT
-        )
-    """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS jobs (
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                description TEXT,
+                url TEXT,
+                budget REAL,
+                skills TEXT
+            )
+        """)
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS proposals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            job_id TEXT,
-            cover_letter TEXT,
-            status TEXT,
-            FOREIGN KEY (job_id) REFERENCES jobs (id)
-        )
-    """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS proposals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id TEXT,
+                cover_letter TEXT,
+                status TEXT,
+                FOREIGN KEY (job_id) REFERENCES jobs (id)
+            )
+        """)
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS responses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            proposal_id INTEGER,
-            message TEXT,
-            FOREIGN KEY (proposal_id) REFERENCES proposals (id)
-        )
-    """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                proposal_id INTEGER,
+                message TEXT,
+                FOREIGN KEY (proposal_id) REFERENCES proposals (id)
+            )
+        """)
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
+
+    await asyncio.to_thread(_create_db)
 
 def save_job(job):
     """Saves a job to the database."""
