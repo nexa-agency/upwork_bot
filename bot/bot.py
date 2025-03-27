@@ -3,15 +3,15 @@ import os
 import sys
 import logging
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
-from aiogram.types import BotCommand
+from aiogram.types import BotCommand, DefaultBotProperties  # Import DefaultBotProperties
 
 from config import TELEGRAM_TOKEN, OPENAI_API_KEY, UPWORK_PUBLIC_KEY, UPWORK_SECRET_KEY, ADMIN_ID
-from bot.middlewares.throttling import ThrottlingMiddleware
-from bot.utils.db import create_db, save_job, save_proposal
+# from bot.middlewares.throttling import ThrottlingMiddleware #
+# from bot.utils.db import create_db, save_job, save_proposal #
 from upwork_api import get_access_token, search_jobs, submit_proposal
-from openai_integration import generate_cover_letter
+from openai_api import generate_cover_letter  # Исправленный импорт
 from filters import filter_jobs
 from models import Job, Proposal
 
@@ -22,11 +22,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Инициализация бота и диспетчера
-bot = Bot(token=TELEGRAM_TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(token=TELEGRAM_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))  # Use DefaultBotProperties
 dp = Dispatcher()
 
 # Регистрация middlewares
-dp.message.middleware(ThrottlingMiddleware(limit=1))
+# dp.message.middleware(ThrottlingMiddleware(limit=1))
 
 # Регистрация handlers
 async def set_commands(bot: Bot):
@@ -41,14 +41,14 @@ async def set_commands(bot: Bot):
 
 async def main():
     # Создаем таблицы в базе данных
-    await create_db()
+    # await create_db()
 
     # Установка команд бота
     await set_commands(bot)
 
     # Регистрация handlers
-    dp.include_router(bot.handlers.commands.router)
-    dp.include_router(bot.handlers.jobs.router)
+    # dp.include_router(bot.handlers.commands.router)
+    # dp.include_router(bot.handlers.jobs.router)
 
     # Get Upwork access token
     access_token = get_access_token()
@@ -70,11 +70,12 @@ async def main():
                     description=job_data['snippet'],
                     url=f"https://www.upwork.com/jobs/{job_data['id']}",
                     budget=job_data['budget']['amount'],
-                    skills=[skill['name'] for skill in job_data['skills']]
+                    skills=[skill['name'] for skill in job_data['skills']],
+                    proposals=""  # Добавлено значение по умолчанию
                 )
 
                 # Save job to database
-                save_job(job)
+                # save_job(job)
 
                 # Generate cover letter
                 cover_letter = generate_cover_letter(job.description)
@@ -83,7 +84,7 @@ async def main():
                     if submit_proposal(job.id, cover_letter):
                         logger.info(f"Successfully submitted proposal to job ID: {job.id}")
                         # Save proposal to database
-                        save_proposal(job.id, cover_letter, "submitted")
+                        # save_proposal(job.id, cover_letter, "submitted")
                     else:
                         logger.error(f"Failed to submit proposal to job ID: {job.id}")
                 else:
