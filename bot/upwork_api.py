@@ -1,92 +1,114 @@
-import asyncio
-import logging
 import os
-from aiogram import Router
+import requests
 from dotenv import load_dotenv
-from aiogram.types import Message
-from bot.upwork_api import get_jobs
-from bot.openai_api import generate_cover_letter
+from urllib import parse
+import base64
+import time
+import hashlib
+import hmac
+import json
 
 load_dotenv()
 
-ADMIN_ID = int(os.getenv("ADMIN_ID"))
+UPWORK_PUBLIC_KEY = os.getenv("UPWORK_PUBLIC_KEY")
+UPWORK_SECRET_KEY = os.getenv("UPWORK_SECRET_KEY")
+UPWORK_API_URL = "https://www.upwork.com/api/v3"
 
-router = Router()
+def generate_oauth_signature(url, method, params, secret):
+    """Generates OAuth signature."""
+    base_string = f"{method.upper()}&{parse.quote(url, safe='')}&{parse.quote(parse.urlencode(sorted(params.items()), safe=''), safe='')}"
+    key = f"{secret}&"
+    hashed = hmac.new(key.encode('utf-8'), base_string.encode('utf-8'), hashlib.sha1)
+    return base64.b64encode(hashed.digest()).decode('utf-8')
 
-# Глобальные переменные для хранения фильтров и состояния
-keywords = ["telegram", "bot", "node.js"]
-min_budget = 100
-job_type = ["fixed", "hourly"]
-auto_submit = True  # Включена ли автоматическая подача
+def get_oauth_headers(url, method, params, consumer_key, consumer_secret):
+    """Generates OAuth headers."""
+    oauth_params = {
+        'oauth_consumer_key': consumer_key,
+        'oauth_nonce': str(int(time.time())),
+        'oauth_signature_method': 'HMAC-SHA1',
+        'oauth_timestamp': str(int(time.time())),
+        'oauth_version': '1.0'
+    }
+    params.update(oauth_params)
+    signature = generate_oauth_signature(url, method, params, consumer_secret)
+    params['oauth_signature'] = signature
+    auth_header = 'OAuth ' + ', '.join([f'{parse.quote(k)}="{parse.quote(v)}"' for k, v in params.items()])
+    return {'Authorization': auth_header}
 
-async def send_notification(bot, message: str):
-    """Отправляет уведомление администратору."""
-    await bot.send_message(ADMIN_ID, message)
+def get_access_token():
+    """Gets the access token from Upwork API."""
+    url = f"{UPWORK_API_URL}/auth/keys/token"
+    method = "POST"
+    params = {}
 
-async def process_jobs(bot):
-    """Фоновый процесс для поиска и подачи заявок."""
-    global keywords, min_budget, job_type, auto_submit
-    while True:
-        if auto_submit:
-            jobs = get_jobs(keywords, min_budget, job_type)
-            if jobs:
-                for job in jobs:
-                    job_id = job['node']['id']
-                    job_title = job['node']['title']
-                    job_description = job['node']['description']
-                    job_url = job['node']['url']
+    headers = get_oauth_headers(url, method, params, UPWORK_PUBLIC_KEY, UPWORK_SECRET_KEY)
 
-                    cover_letter = generate_cover_letter(job_description)
-
-                    # TODO: Добавить функцию для автоматической подачи заявки через Upwork API
-                    # submit_application(job_id, cover_letter)
-
-                    message = f"📩 На вакансию: {job_url}\n🚀 Был автоматически отправлен Cover Letter:\n---\n{cover_letter}\n---"
-                    await send_notification(bot, message)
-            else:
-                logging.info("Нет подходящих вакансий.")
-        else:
-            logging.info("Автоподача приостановлена.")
-        await asyncio.sleep(600)  # Проверка каждые 10 минут
-
-# Функция для запуска процесса обработки вакансий
-async def start_job_processing(bot):
-    asyncio.create_task(process_jobs(bot))
-
-@router.message(commands=["set_keywords"])
-async def set_keywords_command(message: Message):
-    """Устанавливает ключевые слова для поиска вакансий."""
-    global keywords
-    keywords = message.text.split()[1:]  # Получаем ключевые слова из сообщения
-    await message.answer(f"Ключевые слова установлены: {keywords}")
-
-@router.message(commands=["set_min_budget"])
-async def set_min_budget_command(message: Message):
-    """Устанавливает минимальный бюджет для поиска вакансий."""
-    global min_budget
     try:
-        min_budget = int(message.text.split()[1])  # Получаем минимальный бюджет из сообщения
-        await message.answer(f"Минимальный бюджет установлен: {min_budget}")
-    except ValueError:
-        await message.answer("Некорректный формат бюджета. Используйте число.")
+        response = requests.post(url, headers=headers)
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+        return response.json().get('access_token')
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting access token: {e}")
+        return None
 
-@router.message(commands=["set_job_type"])
-async def set_job_type_command(message: Message):
-    """Устанавливает тип проекта для поиска вакансий."""
-    global job_type
-    job_type = message.text.split()[1:]  # Получаем тип проекта из сообщения
-    await message.answer(f"Тип проекта установлен: {job_type}")
+def search_jobs(query):
+    """Searches jobs on Upwork based on the search query."""
+    access_token = get_access_token()
+    if not access_token:
+        print("Failed to obtain access token.")
+        return []
 
-@router.message(commands=["pause"])
-async def pause_command(message: Message):
-    """Приостанавливает автоподачу заявок."""
-    global auto_submit
-    auto_submit = False
-    await message.answer("Автоподача приостановлена.")
+    url = f"{UPWORK_API_URL}/jobs/search"
+    method = "GET"
+    params = {'q': query}
 
-@router.message(commands=["resume"])
-async def resume_command(message: Message):
-    """Возобновляет автоподачу заявок."""
-    global auto_submit
-    auto_submit = True
-    await message.answer("Автоподача возобновлена.")
+    headers = {'Authorization': f'Bearer {access_token}'}
+
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        return response.json().get('jobs', [])
+    except requests.exceptions.RequestException as e:
+        print(f"Error searching jobs: {e}")
+        return []
+
+def submit_proposal(job_id, cover_letter):
+    """Submits a proposal to Upwork API."""
+    access_token = get_access_token()
+    if not access_token:
+        print("Failed to obtain access token.")
+        return False
+
+    url = f"{UPWORK_API_URL}/jobs/{job_id}/apply"
+    method = "POST"
+    data = {'cover_letter': cover_letter}
+
+    headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
+
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response.raise_for_status()
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"Error submitting proposal: {e}")
+        return False
+
+if __name__ == '__main__':
+    # Example usage
+    # access_token = get_access_token()
+    # if access_token:
+    #     print(f"Access Token: {access_token}")
+
+    jobs = search_jobs("Python developer")
+    if jobs:
+        print(f"Found {len(jobs)} jobs.")
+        for job in jobs:
+            print(f"Job Title: {job['title']}")
+
+    # job_id = "YOUR_JOB_ID"  # Replace with a valid job ID
+    # cover_letter = "This is a test cover letter."
+    # if submit_proposal(job_id, cover_letter):
+    #     print("Successfully submitted proposal.")
+    # else:
+    #     print("Failed to submit proposal.")
