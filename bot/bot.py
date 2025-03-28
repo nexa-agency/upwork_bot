@@ -36,6 +36,20 @@ async def set_commands(bot: Bot):
     ]
     await bot.set_my_commands(commands)
 
+# Добавим функцию get_jobs_from_upwork (заглушка)
+async def get_jobs_from_upwork():
+    """
+    Эта функция должна делать запрос к API Upwork и возвращать список вакансий.
+    """
+    # TODO: Реализовать запрос к API Upwork
+    return []
+
+def process_data(data):
+    """
+    Эта функция обрабатывает данные.
+    """
+    return "Processed data"
+
 async def main():
     # Создаем таблицы в базе данных
     await create_db()
