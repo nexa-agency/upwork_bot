@@ -74,9 +74,9 @@ async def generate_image():
 async def send_post(chat_id: int, bot: Bot):
     post_text = await generate_post_text()
     image_url = await generate_image()
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("🔄 Regenerate", callback_data="regenerate_post")]
-    ])
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton("🔄 Regenerate", callback_data="regenerate_post")]]
+    )
     await bot.send_photo(
         chat_id=chat_id,
         photo=image_url,
