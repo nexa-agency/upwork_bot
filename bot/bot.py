@@ -11,6 +11,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 from aiogram import Router
+from aiogram.enums import ParseMode # Import ParseMode
 
 from middlewares.throttling import ThrottlingMiddleware
 from config import TELEGRAM_TOKEN
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Initialize bot and dispatcher
 bot = Bot(
     token=TELEGRAM_TOKEN,
-    default=DefaultBotProperties(parse_mode=openai.BaseModel.HTML)
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML) # Use ParseMode.HTML
 )
 dp = Dispatcher()
 
