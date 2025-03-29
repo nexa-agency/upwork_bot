@@ -46,10 +46,16 @@ Futuristic 3D illustration of floating glossy geometric shapes (discs, cylinders
 
 # Function to generate post text
 async def generate_post_text():
-    response = openai.Completion.create(
-        engine="text-davinci-003", prompt=POST_PROMPT, max_tokens=300, temperature=0.7
+    response = openai.ChatCompletion.create(
+        model="gpt-4",  # Используйте подходящую модель, например, gpt-4 или gpt-3.5-turbo
+        messages=[
+            {"role": "system", "content": "You are a professional assistant for generating LinkedIn posts."},
+            {"role": "user", "content": POST_PROMPT},
+        ],
+        max_tokens=300,
+        temperature=0.7,
     )
-    return response["choices"][0]["text"].strip()
+    return response["choices"][0]["message"]["content"].strip()
 
 # Function to generate image
 async def generate_image():
