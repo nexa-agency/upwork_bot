@@ -31,7 +31,7 @@ dp = Dispatcher()
 # Register middleware
 dp.message.middleware(ThrottlingMiddleware(limit=1))
 
-
+# Include routers
 dp.include_router(jobs_router)
 
 # OpenAI API Key
@@ -247,6 +247,7 @@ async def handle_cover_letter(callback_query: types.CallbackQuery):
 dp.callback_query.register(handle_cover_letter, lambda c: c.data.startswith("cover_"))
 
 # Schedule job checks
+scheduler = AsyncIOScheduler()
 scheduler.add_job(check_new_jobs, 'interval', minutes=30)
 
 # Main function
