@@ -1,15 +1,16 @@
+import logging
 from aiogram import Router, types
+from aiogram.filters import Command
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
+@router.message(Command("start"))
+async def start_command(message: types.Message):
+    logger.info(f"Received /start command from user: {message.from_user.id}")
+    await message.answer("Привет! Я бот для автоматической подачи заявок на Upwork.")
 
 @router.message()
-async def echo_handler(message: types.Message) -> None:
-    """
-    Этот обработчик будет отвечать на любое входящее сообщение.
-    В реальном проекте здесь будет логика обработки задач.
-    """
-    try:
-        await message.send_copy(message.chat.id)
-    except TypeError:
-        await message.answer("Nice try!")
+async def echo_handler(message: types.Message):
+    await message.answer("This is a placeholder for job-related commands.")

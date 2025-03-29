@@ -11,6 +11,8 @@ from aiogram.client.default import DefaultBotProperties
 
 from middlewares.throttling import ThrottlingMiddleware
 from config import TELEGRAM_TOKEN
+from handlers.commands import router as commands_router
+from handlers.jobs import router as jobs_router
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +26,10 @@ dp = Dispatcher()
 
 # Register middleware
 dp.message.middleware(ThrottlingMiddleware(limit=1))
+
+# Register routers
+dp.include_router(commands_router)
+dp.include_router(jobs_router)
 
 # OpenAI API Key
 openai.api_key = os.getenv("OPENAI_API_KEY")
