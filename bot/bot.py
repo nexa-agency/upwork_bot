@@ -44,7 +44,7 @@ Generate a professional LinkedIn post for a software development team. The post 
 """
 
 IMAGE_PROMPT = """
-Futuristic 3D illustration of floating glossy geometric shapes (discs, cylinders, torus) with soft translucent materials, iridescent blue gradients, neon rim lighting, and a glowing purple-blue gradient background. Clean, minimal, abstract composition with depth and reflections, modern digital art style.
+Futuristic 3D illustration of floating glossy geometric shapes (discs, cylinders, torus) with soft translucent materials, iridescent blue gradients, neon rim lighting, and a glowing blue gradient background. Clean, minimal, abstract composition with depth and reflections, modern digital art style.
 """
 
 # Function to generate post text
