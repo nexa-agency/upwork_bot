@@ -1,21 +1,19 @@
 import asyncio
 import logging
+from mailbox import Message
 import os
 import openai
 import aiohttp
 from bs4 import BeautifulSoup
-from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from aiogram import Bot, Dispatcher, types, Router
-from aiogram.enums import ParseMode
-from aiogram.types import BotCommand, Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
+from aiogram import Router
 
 from middlewares.throttling import ThrottlingMiddleware
 from config import TELEGRAM_TOKEN
-from handlers.commands import router as commands_router
-from handlers.jobs import router as jobs_router
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -24,16 +22,12 @@ logger = logging.getLogger(__name__)
 # Initialize bot and dispatcher
 bot = Bot(
     token=TELEGRAM_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+    default=DefaultBotProperties(parse_mode=openai.BaseModel.HTML)
 )
 dp = Dispatcher()
 
 # Register middleware
 dp.message.middleware(ThrottlingMiddleware(limit=1))
-
-# Include routers
-dp.include_router(jobs_router)
-dp.include_router(commands_router)
 
 # OpenAI API Key
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -255,10 +249,10 @@ scheduler.add_job(check_new_jobs, 'interval', minutes=30)
 async def main():
     # Set bot commands
     await bot.set_my_commands([
-        BotCommand(command="start", description="Start the bot"),
-        BotCommand(command="help", description="Help"),
-        BotCommand(command="generate_post", description="Generate a post"),
-        BotCommand(command="check_jobs", description="Check for new jobs now"),
+        Command(command="start", description="Start the bot"),
+        Command(command="help", description="Help"),
+        Command(command="generate_post", description="Generate a post"),
+        BotCommand(command="check_jobs", description="Check for new jobs now"), # type: ignore # type: ignore
     ])
 
     # Start the scheduler
@@ -297,5 +291,3 @@ async def check_jobs_command(message: types.Message):
     await message.answer("Проверяю новые вакансии на Upwork...")
     await check_new_jobs()
     await message.answer("Проверка завершена.")
-
-dp.include_router(router)
