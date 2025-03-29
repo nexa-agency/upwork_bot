@@ -49,7 +49,7 @@ Futuristic 3D illustration of floating glossy geometric shapes (discs, cylinders
 
 # Function to generate post text
 async def generate_post_text():
-    response = await client.chat.completions.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a professional assistant for generating LinkedIn posts."},
@@ -58,17 +58,19 @@ async def generate_post_text():
         max_tokens=300,
         temperature=0.7,
     )
-    return response.choices[0].message.content.strip()
+    completion = await response
+    return completion.choices[0].message.content.strip()
 
 # Function to generate image
 async def generate_image():
-    response = await client.images.generate(
+    response = client.images.generate(
         model="dall-e-3",
         prompt=IMAGE_PROMPT,
         n=1,
         size="1792x1024"
     )
-    return response.data[0].url
+    image = await response
+    return image.data[0].url
 
 # Function to send post
 async def send_post(chat_id: int, bot: Bot):
