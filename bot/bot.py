@@ -5,7 +5,7 @@ import openai
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.enums import ParseMode
-from aiogram.types import BotCommand, Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import BotCommand, Message, InlineKeyboardMarkup
 from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 
@@ -52,13 +52,15 @@ async def generate_post_text():
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a professional assistant for generating LinkedIn posts."},
+            {"role": "system", "content": "You are a professional assistant for generating LinkedIn posts. Keep the post under 900 characters."},
             {"role": "user", "content": POST_PROMPT},
         ],
-        max_tokens=300,
+        max_tokens=200,  # Reduced from 300 to ensure shorter responses
         temperature=0.7,
     )
-    return response.choices[0].message.content.strip()
+    text = response.choices[0].message.content.strip()
+    # Ensure the text doesn't exceed Telegram's limit
+    return text[:1024] if len(text) > 1024 else text
 
 # Function to generate image
 async def generate_image():
@@ -70,29 +72,29 @@ async def generate_image():
     )
     return response.data[0].url
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup
 
 # Function to send post
 async def send_post(chat_id: int, bot: Bot):
-    post_text = await generate_post_text()
-    image_url = await generate_image()
-    
-    # Create button first
-    button = {"text": "🔄 Regenerate", "callback_data": "regenerate_post"}
-    
-    # Create keyboard with proper structure
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[
-            {"text": button["text"], "callback_data": button["callback_data"]}
-        ]]
-    )
-    
-    await bot.send_photo(
-        chat_id=chat_id,
-        photo=image_url,
-        caption=post_text,
-        reply_markup=keyboard,
-    )
+    try:
+        post_text = await generate_post_text()
+        image_url = await generate_image()
+        
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[
+                {"text": "🔄 Regenerate", "callback_data": "regenerate_post"}
+            ]]
+        )
+        
+        await bot.send_photo(
+            chat_id=chat_id,
+            photo=image_url,
+            caption=post_text,
+            reply_markup=keyboard,
+        )
+    except Exception as e:
+        logger.error(f"Error in send_post: {e}")
+        await bot.send_message(chat_id=chat_id, text="Sorry, there was an error generating the post. Please try again.")
 
 # Handler for /generate_post command
 async def handle_generate_post(message: Message):
