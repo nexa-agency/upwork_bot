@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
+
 @dataclass
 class Job:
     id: str
@@ -10,6 +11,7 @@ class Job:
     budget: float
     skills: List[str]
     proposals: str
+
 
 @dataclass
 class Proposal:

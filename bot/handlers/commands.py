@@ -15,8 +15,12 @@ router = Router()
 load_dotenv()
 
 UPWORK_API_URL = "https://www.upwork.com/api/graphql"
-UPWORK_CLIENT_ID = os.getenv("UPWORK_PUBLIC_KEY")  # Используем UPWORK_PUBLIC_KEY как client_id
-UPWORK_CLIENT_SECRET = os.getenv("UPWORK_SECRET_KEY")  # Используем UPWORK_SECRET_KEY как client_secret
+UPWORK_CLIENT_ID = os.getenv(
+    "UPWORK_PUBLIC_KEY"
+)  # Используем UPWORK_PUBLIC_KEY как client_id
+UPWORK_CLIENT_SECRET = os.getenv(
+    "UPWORK_SECRET_KEY"
+)  # Используем UPWORK_SECRET_KEY как client_secret
 UPWORK_REDIRECT_URI = "https://example.com/callback"  # Замените на ваш redirect URI
 
 # URL для получения authorization code
@@ -54,9 +58,11 @@ SALES_STRATEGIST_PROMPT = """
 если коротко — ты не про отклики ты про захват рынка
 """
 
+
 @router.message(Command("start"))
 async def start_command(message: types.Message):
     await message.answer("Привет! Я бот для автоматической подачи заявок на Upwork.")
+
 
 @router.message(Command("help"))
 async def help_command(message: types.Message):
@@ -71,9 +77,11 @@ async def help_command(message: types.Message):
         "/generate_cover_letter - Сгенерировать сопроводительное письмо"
     )
 
+
 @router.message(Command("filters"))
 async def filters_command(message: types.Message):
     await message.answer("Здесь будут настройки фильтров.")
+
 
 @router.message(Command("test_upwork"))
 async def test_upwork_command(message: types.Message):
@@ -81,7 +89,9 @@ async def test_upwork_command(message: types.Message):
     Эта команда тестирует подключение к Upwork API.
     """
     if not UPWORK_CLIENT_ID or not UPWORK_CLIENT_SECRET:
-        await message.answer("Ошибка: Не установлены UPWORK_PUBLIC_KEY или UPWORK_SECRET_KEY в переменных окружения.")
+        await message.answer(
+            "Ошибка: Не установлены UPWORK_PUBLIC_KEY или UPWORK_SECRET_KEY в переменных окружения."
+        )
         return
 
     # 1. Получение authorization code
@@ -102,15 +112,20 @@ async def test_upwork_command(message: types.Message):
         "Скопируйте этот authorization code и отправьте его мне командой `/code YOUR_AUTHORIZATION_CODE`."
     )
 
+
 @router.message(Command("code"))
 async def code_command(message: types.Message):
     """
     Эта команда получает authorization code от пользователя и обменивает его на access token.
     """
-    authorization_code = message.text.split(" ")[1]  # Получаем authorization code из сообщения
+    authorization_code = message.text.split(" ")[
+        1
+    ]  # Получаем authorization code из сообщения
 
     if not authorization_code:
-        await message.answer("Ошибка: Пожалуйста, укажите authorization code после команды `/code`.")
+        await message.answer(
+            "Ошибка: Пожалуйста, укажите authorization code после команды `/code`."
+        )
         return
 
     # 2. Получение access token
@@ -130,14 +145,18 @@ async def code_command(message: types.Message):
         access_token = token_data.get("access_token")
 
         if not access_token:
-            await message.answer(f"Ошибка при получении access token: {token_data.get('error_description') or token_data.get('error') or 'Неизвестная ошибка'}")
+            await message.answer(
+                f"Ошибка при получении access token: {token_data.get('error_description') or token_data.get('error') or 'Неизвестная ошибка'}"
+            )
             return
 
         # Сохраняем access_token (временно в памяти)
         global ACCESS_TOKEN
         ACCESS_TOKEN = access_token
 
-        await message.answer("Access token успешно получен! Теперь вы можете использовать команду `/me` для получения информации о вашем профиле.")
+        await message.answer(
+            "Access token успешно получен! Теперь вы можете использовать команду `/me` для получения информации о вашем профиле."
+        )
 
     except requests.exceptions.RequestException as e:
         await message.answer(f"Ошибка при запросе access token: {e}")
@@ -146,6 +165,7 @@ async def code_command(message: types.Message):
     except Exception as e:
         await message.answer(f"Неизвестная ошибка: {e}")
 
+
 @router.message(Command("me"))
 async def me_command(message: types.Message):
     """
@@ -153,7 +173,9 @@ async def me_command(message: types.Message):
     """
     # Проверяем, есть ли access token
     if not ACCESS_TOKEN:
-        await message.answer("Ошибка: Сначала необходимо получить access token, выполнив команду `/test_upwork` и `/code`.")
+        await message.answer(
+            "Ошибка: Сначала необходимо получить access token, выполнив команду `/test_upwork` и `/code`."
+        )
         return
 
     headers = {
@@ -175,10 +197,7 @@ async def me_command(message: types.Message):
 
     try:
         response = requests.post(
-            UPWORK_API_URL,
-            headers=headers,
-            json={"query": query},
-            timeout=10
+            UPWORK_API_URL, headers=headers, json={"query": query}, timeout=10
         )
         response.raise_for_status()
 
@@ -194,7 +213,9 @@ async def me_command(message: types.Message):
                 f"Профиль: {user_info['profileUrl']}"
             )
         else:
-            await message.answer(f"Ошибка при получении данных из Upwork API: {result.get('errors')}")
+            await message.answer(
+                f"Ошибка при получении данных из Upwork API: {result.get('errors')}"
+            )
 
     except requests.exceptions.RequestException as e:
         await message.answer(f"Ошибка подключения к Upwork API: {e}")
@@ -203,6 +224,7 @@ async def me_command(message: types.Message):
     except Exception as e:
         await message.answer(f"Неизвестная ошибка: {e}")
 
+
 @router.message(Command("generate_cover_letter"))
 async def generate_cover_letter_command(message: types.Message):
     """
@@ -210,10 +232,14 @@ async def generate_cover_letter_command(message: types.Message):
     Usage: /generate_cover_letter <job_description>
     """
     try:
-        job_description = message.text.split(" ", 1)[1]  # Extract job description from the command
+        job_description = message.text.split(" ", 1)[
+            1
+        ]  # Extract job description from the command
 
         if not job_description:
-            await message.answer("Пожалуйста, укажите описание проекта после команды `/generate_cover_letter`.")
+            await message.answer(
+                "Пожалуйста, укажите описание проекта после команды `/generate_cover_letter`."
+            )
             return
 
         # Construct the prompt for OpenAI
@@ -225,7 +251,7 @@ async def generate_cover_letter_command(message: types.Message):
                 model="gpt-4o",  # Or another suitable model
                 messages=[
                     {"role": "system", "content": SALES_STRATEGIST_PROMPT},
-                    {"role": "user", "content": f"Job Description: {job_description}"}
+                    {"role": "user", "content": f"Job Description: {job_description}"},
                 ],
                 max_tokens=500,  # Adjust as needed
                 n=1,
@@ -245,9 +271,12 @@ async def generate_cover_letter_command(message: types.Message):
             await message.answer(f"Ошибка статуса от OpenAI API: {e}")
 
     except IndexError:
-        await message.answer("Пожалуйста, укажите описание проекта после команды `/generate_cover_letter`.")
+        await message.answer(
+            "Пожалуйста, укажите описание проекта после команды `/generate_cover_letter`."
+        )
     except Exception as e:
         await message.answer(f"Неизвестная ошибка: {e}")
+
 
 # Глобальная переменная для хранения access token (ВНИМАНИЕ: это небезопасно для production)
 ACCESS_TOKEN = None

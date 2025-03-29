@@ -14,27 +14,32 @@ UPWORK_PUBLIC_KEY = os.getenv("UPWORK_PUBLIC_KEY")
 UPWORK_SECRET_KEY = os.getenv("UPWORK_SECRET_KEY")
 UPWORK_API_URL = "https://www.upwork.com/api/v3"
 
+
 def generate_oauth_signature(url, method, params, secret):
     """Generates OAuth signature."""
     base_string = f"{method.upper()}&{parse.quote(url, safe='')}&{parse.quote(parse.urlencode(sorted(params.items()), safe=''), safe='')}"
     key = f"{secret}&"
-    hashed = hmac.new(key.encode('utf-8'), base_string.encode('utf-8'), hashlib.sha1)
-    return base64.b64encode(hashed.digest()).decode('utf-8')
+    hashed = hmac.new(key.encode("utf-8"), base_string.encode("utf-8"), hashlib.sha1)
+    return base64.b64encode(hashed.digest()).decode("utf-8")
+
 
 def get_oauth_headers(url, method, params, consumer_key, consumer_secret):
     """Generates OAuth headers."""
     oauth_params = {
-        'oauth_consumer_key': consumer_key,
-        'oauth_nonce': str(int(time.time())),
-        'oauth_signature_method': 'HMAC-SHA1',
-        'oauth_timestamp': str(int(time.time())),
-        'oauth_version': '1.0'
+        "oauth_consumer_key": consumer_key,
+        "oauth_nonce": str(int(time.time())),
+        "oauth_signature_method": "HMAC-SHA1",
+        "oauth_timestamp": str(int(time.time())),
+        "oauth_version": "1.0",
     }
     params.update(oauth_params)
     signature = generate_oauth_signature(url, method, params, consumer_secret)
-    params['oauth_signature'] = signature
-    auth_header = 'OAuth ' + ', '.join([f'{parse.quote(k)}="{parse.quote(v)}"' for k, v in params.items()])
-    return {'Authorization': auth_header}
+    params["oauth_signature"] = signature
+    auth_header = "OAuth " + ", ".join(
+        [f'{parse.quote(k)}="{parse.quote(v)}"' for k, v in params.items()]
+    )
+    return {"Authorization": auth_header}
+
 
 def get_access_token():
     """Gets the access token from Upwork API."""
@@ -42,15 +47,18 @@ def get_access_token():
     method = "POST"
     params = {}
 
-    headers = get_oauth_headers(url, method, params, UPWORK_PUBLIC_KEY, UPWORK_SECRET_KEY)
+    headers = get_oauth_headers(
+        url, method, params, UPWORK_PUBLIC_KEY, UPWORK_SECRET_KEY
+    )
 
     try:
         response = requests.post(url, headers=headers)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-        return response.json().get('access_token')
+        return response.json().get("access_token")
     except requests.exceptions.RequestException as e:
         print(f"Error getting access token: {e}")
         return None
+
 
 def search_jobs(query):
     """Searches jobs on Upwork based on the search query."""
@@ -61,17 +69,18 @@ def search_jobs(query):
 
     url = f"{UPWORK_API_URL}/jobs/search"
     method = "GET"
-    params = {'q': query}
+    params = {"q": query}
 
-    headers = {'Authorization': f'Bearer {access_token}'}
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     try:
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
-        return response.json().get('jobs', [])
+        return response.json().get("jobs", [])
     except requests.exceptions.RequestException as e:
         print(f"Error searching jobs: {e}")
         return []
+
 
 def submit_proposal(job_id, cover_letter):
     """Submits a proposal to Upwork API."""
@@ -82,9 +91,12 @@ def submit_proposal(job_id, cover_letter):
 
     url = f"{UPWORK_API_URL}/jobs/{job_id}/apply"
     method = "POST"
-    data = {'cover_letter': cover_letter}
+    data = {"cover_letter": cover_letter}
 
-    headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
 
     try:
         response = requests.post(url, headers=headers, data=json.dumps(data))
@@ -94,7 +106,8 @@ def submit_proposal(job_id, cover_letter):
         print(f"Error submitting proposal: {e}")
         return False
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Example usage
     # access_token = get_access_token()
     # if access_token:

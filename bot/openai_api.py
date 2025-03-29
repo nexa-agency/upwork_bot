@@ -6,6 +6,7 @@ load_dotenv()
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+
 def generate_cover_letter(job_description, template=""):
     """Генерирует Cover Letter с использованием OpenAI API."""
     prompt = f"""
@@ -26,7 +27,10 @@ def generate_cover_letter(job_description, template=""):
         print(f"Ошибка при запросе к OpenAI API: {e}")
         return None
 
-if __name__ == '__main__':
-    job_description = "Нужен Telegram-бот для автоматической подачи заявок на вакансии с Upwork."
+
+if __name__ == "__main__":
+    job_description = (
+        "Нужен Telegram-бот для автоматической подачи заявок на вакансии с Upwork."
+    )
     cover_letter = generate_cover_letter(job_description)
     print(cover_letter)
