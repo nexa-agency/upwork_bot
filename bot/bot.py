@@ -31,8 +31,7 @@ dp = Dispatcher()
 # Register middleware
 dp.message.middleware(ThrottlingMiddleware(limit=1))
 
-# Register routers
-dp.include_router(commands_router)
+
 dp.include_router(jobs_router)
 
 # OpenAI API Key
