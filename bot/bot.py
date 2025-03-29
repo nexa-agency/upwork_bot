@@ -35,6 +35,9 @@ dp.include_router(jobs_router)
 # OpenAI API Key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+# Initialize OpenAI client
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 # Prompts for OpenAI
 POST_PROMPT = """
 Generate a professional LinkedIn post for a software development team. The post should highlight the team's expertise in full-cycle product development, Web3, SaaS, and automation solutions. Include benefits of working with the team, such as cost-effectiveness, scalability, and tailored solutions for startups. Use a professional and engaging tone.
@@ -46,8 +49,8 @@ Futuristic 3D illustration of floating glossy geometric shapes (discs, cylinders
 
 # Function to generate post text
 async def generate_post_text():
-    response = openai.ChatCompletion.create(
-        model="gpt-4",  # Используйте подходящую модель, например, gpt-4 или gpt-3.5-turbo
+    response = await client.chat.completions.create(
+        model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a professional assistant for generating LinkedIn posts."},
             {"role": "user", "content": POST_PROMPT},
@@ -55,12 +58,17 @@ async def generate_post_text():
         max_tokens=300,
         temperature=0.7,
     )
-    return response["choices"][0]["message"]["content"].strip()
+    return response.choices[0].message.content.strip()
 
 # Function to generate image
 async def generate_image():
-    response = openai.Image.create(prompt=IMAGE_PROMPT, n=1, size="1920x720")
-    return response["data"][0]["url"]
+    response = await client.images.generate(
+        model="dall-e-3",
+        prompt=IMAGE_PROMPT,
+        n=1,
+        size="1792x1024"
+    )
+    return response.data[0].url
 
 # Function to send post
 async def send_post(chat_id: int, bot: Bot):
