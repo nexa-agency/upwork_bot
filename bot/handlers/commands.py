@@ -282,7 +282,7 @@ async def generate_cover_letter_command(message: types.Message):
 ACCESS_TOKEN = None
 
 async def set_bot_commands():
-    await bot.set_my_commands([
+    await set_bot_commands([
         Command(command="start", description="Запустить бота"),
         Command(command="help", description="Помощь"),
         Command(command="generate_post", description="Сгенерировать пост"),
