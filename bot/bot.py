@@ -66,7 +66,7 @@ async def generate_image():
         model="dall-e-3",
         prompt=IMAGE_PROMPT,
         n=1,
-        size="1920x1080"
+        size="1792x1024"
     )
     return response.data[0].url
 
