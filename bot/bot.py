@@ -84,7 +84,6 @@ async def daily_post():
     await send_post(chat_id, bot)
 
 scheduler.add_job(daily_post, "cron", hour=9)  # Schedule daily post at 9 AM
-scheduler.start()
 
 # Main function
 async def main():
@@ -94,6 +93,9 @@ async def main():
         BotCommand(command="help", description="Help"),
         BotCommand(command="generate_post", description="Generate a post"),
     ])
+
+    # Start the scheduler
+    scheduler.start()
 
     # Start polling
     try:
