@@ -70,6 +70,8 @@ async def generate_image():
     )
     return response.data[0].url
 
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 # Function to send post
 async def send_post(chat_id: int, bot: Bot):
     post_text = await generate_post_text()
