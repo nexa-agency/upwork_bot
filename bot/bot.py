@@ -13,6 +13,7 @@ from aiogram.types import (
     InlineKeyboardButton,
 )
 from aiogram.client.default import DefaultBotProperties
+from aiogram.filters import Command
 
 from middlewares.throttling import ThrottlingMiddleware
 # from utils.db import create_db
@@ -90,16 +91,19 @@ async def send_post(chat_id: int, bot: Bot):
 
 
 # Обработчик команды /generate_post
-@dp.message(commands=["generate_post"])
 async def handle_generate_post(message: Message):
     await send_post(message.chat.id, bot)
 
 
 # Обработчик кнопки "Перегенерировать"
-@dp.callback_query(lambda c: c.data == "regenerate_post")
 async def handle_regenerate_post(callback_query: types.CallbackQuery):
     await send_post(callback_query.message.chat.id, bot)
     await callback_query.answer()
+
+
+# Регистрация обработчиков
+dp.message.register(handle_generate_post, Command("generate_post"))
+dp.callback_query.register(handle_regenerate_post, lambda c: c.data == "regenerate_post")
 
 
 # Планировщик для ежедневной генерации
@@ -108,24 +112,17 @@ scheduler = AsyncIOScheduler()
 
 async def daily_post():
     chat_id = "YOUR_BOT_CHAT_ID"  # Укажите ID чата бота
-    await send_post(chat_id, bot)
-
-
-# Запуск планировщика
 scheduler.add_job(daily_post, "cron", hour=9)  # Генерация поста каждый день в 9 утра
 scheduler.start()
 
 
 async def main():
-    # Создаем таблицы в базе данных
-    await create_db()
-
     # Установка команд бота
-    await set_commands(bot)
-
-    # Регистрация handlers
-    dp.include_router(commands.router)  # Corrected usage
-    dp.include_router(jobs.router)  # Removed line
+    await bot.set_my_commands([
+        BotCommand(command="start", description="Запустить бота"),
+        BotCommand(command="help", description="Помощь"),
+        BotCommand(command="generate_post", description="Сгенерировать пост"),
+    ])
 
     # Запуск polling
     try:
