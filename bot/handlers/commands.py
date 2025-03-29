@@ -9,8 +9,6 @@ import requests
 from dotenv import load_dotenv
 import openai
 
-import bot  # Import the OpenAI library
-
 router = Router()
 
 # Load environment variables

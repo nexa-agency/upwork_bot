@@ -3,7 +3,7 @@ import logging
 import os
 import openai
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, Router
 from aiogram.enums import ParseMode
 from aiogram.types import BotCommand, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
@@ -16,11 +16,12 @@ from handlers.jobs import router as jobs_router
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize bot and dispatcher
 bot = Bot(
     token=TELEGRAM_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)  # Устанавливаем parse_mode через DefaultBotProperties
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 dp = Dispatcher()
 
@@ -111,3 +112,23 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# Additional router for start and help commands
+router = Router()
+
+@router.message(Command("start"))
+async def start_command(message: types.Message):
+    logger.info(f"Received /start command from user: {message.from_user.id}")
+    await message.answer("Привет! Я бот для автоматической подачи заявок на Upwork.")
+
+@router.message(Command("help"))
+async def help_command(message: types.Message):
+    logger.info(f"Received /help command from user: {message.from_user.id}")
+    await message.answer(
+        "Доступные команды:\n"
+        "/start - Запустить бота\n"
+        "/help - Помощь\n"
+        "/generate_post - Сгенерировать пост"
+    )
+
+dp.include_router(router)
