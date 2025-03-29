@@ -290,4 +290,11 @@ async def help_command(message: types.Message):
         "/generate_post - Сгенерировать пост"
     )
 
+@dp.message(Command("check_jobs"))
+async def check_jobs_command(message: types.Message):
+    """Manually trigger job checking."""
+    await message.answer("Проверяю новые вакансии на Upwork...")
+    await check_new_jobs()
+    await message.answer("Проверка завершена.")
+
 dp.include_router(router)

@@ -229,13 +229,11 @@ async def me_command(message: types.Message):
 @router.message(Command("generate_cover_letter"))
 async def generate_cover_letter_command(message: types.Message):
     """
-    Generates a cover letter using the OpenAI API based on a job description.
-    Usage: /generate_cover_letter <job_description>
+    Генерация cover letter на основе описания вакансии.
+    Использование: /generate_cover_letter <описание вакансии>
     """
     try:
-        job_description = message.text.split(" ", 1)[
-            1
-        ]  # Extract job description from the command
+        job_description = message.text.split(" ", 1)[1]  # Извлекаем описание вакансии
 
         if not job_description:
             await message.answer(
@@ -243,33 +241,11 @@ async def generate_cover_letter_command(message: types.Message):
             )
             return
 
-        # Construct the prompt for OpenAI
-        # prompt = f"{SALES_STRATEGIST_PROMPT}\n\nJob Description: {job_description}\n\nCover Letter:" # Old Prompt
+        # Генерация cover letter через OpenAI
+        from bot import generate_cover_letter  # Импорт функции из основного файла
+        cover_letter = await generate_cover_letter(job_description)
 
-        # Call the OpenAI API - Using Chat Completions API
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o",  # Or another suitable model
-                messages=[
-                    {"role": "system", "content": SALES_STRATEGIST_PROMPT},
-                    {"role": "user", "content": f"Job Description: {job_description}"},
-                ],
-                max_tokens=500,  # Adjust as needed
-                n=1,
-                stop=None,
-                temperature=0.7,  # Adjust for creativity
-            )
-
-            cover_letter = response.choices[0].message.content.strip()
-
-            await message.answer(f"Сгенерированное письмо:\n\n{cover_letter}")
-
-        except openai.APIConnectionError as e:
-            await message.answer(f"Ошибка подключения к OpenAI API: {e}")
-        except openai.RateLimitError as e:
-            await message.answer(f"Превышен лимит запросов к OpenAI API: {e}")
-        except openai.APIStatusError as e:
-            await message.answer(f"Ошибка статуса от OpenAI API: {e}")
+        await message.answer(f"Сгенерированное письмо:\n\n{cover_letter}")
 
     except IndexError:
         await message.answer(
@@ -277,6 +253,17 @@ async def generate_cover_letter_command(message: types.Message):
         )
     except Exception as e:
         await message.answer(f"Неизвестная ошибка: {e}")
+
+
+@router.message(Command("check_jobs"))
+async def check_jobs_command(message: types.Message):
+    """
+    Команда для ручной проверки новых вакансий.
+    """
+    await message.answer("Проверяю новые вакансии на Upwork...")
+    from bot import check_new_jobs  # Импорт функции из основного файла
+    await check_new_jobs()
+    await message.answer("Проверка завершена.")
 
 
 # Глобальная переменная для хранения access token (ВНИМАНИЕ: это небезопасно для production)
@@ -287,4 +274,6 @@ async def set_bot_commands(bot: Bot):  # Принимаем bot как аргу�
         types.BotCommand(commands=["start"], description="Запустить бота"),
         types.BotCommand(commands=["help"], description="Помощь"),
         types.BotCommand(commands=["generate_post"], description="Сгенерировать пост"),
+        types.BotCommand(command="check_jobs", description="Проверить новые вакансии"),
+        types.BotCommand(command="generate_cover_letter", description="Сгенерировать сопроводительное письмо"),
     ])
