@@ -33,6 +33,7 @@ dp.message.middleware(ThrottlingMiddleware(limit=1))
 
 # Include routers
 dp.include_router(jobs_router)
+dp.include_router(commands_router)
 
 # OpenAI API Key
 openai.api_key = os.getenv("OPENAI_API_KEY")

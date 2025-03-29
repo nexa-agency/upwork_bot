@@ -271,9 +271,9 @@ ACCESS_TOKEN = None
 
 async def set_bot_commands(bot: Bot):  # Принимаем bot как аргумент
     await bot.set_my_commands([
-        types.BotCommand(command=["start"], description="Запустить бота"),
-        types.BotCommand(command=["help"], description="Помощь"),
-        types.BotCommand(command=["generate_post"], description="Сгенерировать пост"),
-        types.BotCommand(command=["check_jobs"], description="Проверить новые вакансии"),
-        types.BotCommand(command=["generate_cover_letter"], description="Сгенерировать сопроводительное письмо"),
+        types.BotCommand(command="start", description="Запустить бота"),
+        types.BotCommand(command="help", description="Помощь"),
+        types.BotCommand(command="generate_post", description="Сгенерировать пост"),
+        types.BotCommand(command="check_jobs", description="Проверить новые вакансии"),
+        types.BotCommand(command="generate_cover_letter", description="Сгенерировать сопроводительное письмо"),
     ])
