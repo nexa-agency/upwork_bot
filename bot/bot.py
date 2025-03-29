@@ -2,10 +2,13 @@ import asyncio
 import logging
 import os
 import openai
+import aiohttp
+from bs4 import BeautifulSoup
+from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.enums import ParseMode
-from aiogram.types import BotCommand, Message, InlineKeyboardMarkup
+from aiogram.types import BotCommand, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 
@@ -118,6 +121,135 @@ async def daily_post():
 
 scheduler.add_job(daily_post, "cron", hour=9)  # Schedule daily post at 9 AM
 
+# Job search configuration
+UPWORK_SEARCH_URL = "https://www.upwork.com/nx/search/jobs/?amount=500-&category2_uid=531770282580668418&client_hires=1-9,10-&from_recent_search=true&hourly_rate=10-&location=Americas,Europe&proposals=0-4,5-9,10-14,15-19&q=dev&sort=recency&t=0,1"
+
+JOB_ANALYSIS_PROMPT = """
+Analyze this job posting and provide:
+1. Tech Stack Required
+2. Project Scope
+3. Pros of the job
+4. Cons of the job
+5. Required Experience
+6. Budget/Rate
+7. Should we apply? (Yes/No and brief explanation)
+
+Keep the format clean without markdown formatting or special characters.
+"""
+
+COVER_LETTER_PROMPT = """
+Write a compelling cover letter for this job posting. Consider:
+1. Match requirements with our experience
+2. Show understanding of the project
+3. Address any specific questions
+4. Highlight relevant experience
+5. Keep it concise and professional
+"""
+
+# Store previously seen jobs
+seen_jobs = set()
+
+async def fetch_job_details(session, url):
+    try:
+        async with session.get(url) as response:
+            return await response.text()
+    except Exception as e:
+        logger.error(f"Error fetching job details: {e}")
+        return None
+
+async def analyze_job(job_html):
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a professional job analyzer."},
+                {"role": "user", "content": f"{JOB_ANALYSIS_PROMPT}\n\nJob Description:\n{job_html}"}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error(f"Error analyzing job: {e}")
+        return None
+
+async def generate_cover_letter(job_html):
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a professional cover letter writer."},
+                {"role": "user", "content": f"{COVER_LETTER_PROMPT}\n\nJob Description:\n{job_html}"}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error(f"Error generating cover letter: {e}")
+        return None
+
+async def check_new_jobs():
+    async with aiohttp.ClientSession() as session:
+        try:
+            jobs_html = await fetch_job_details(session, UPWORK_SEARCH_URL)
+            if not jobs_html:
+                return
+            
+            soup = BeautifulSoup(jobs_html, 'html.parser')
+            new_jobs = soup.find_all('div', class_='job-tile')  # Adjust class based on actual Upwork HTML
+            
+            for job in new_jobs:
+                job_id = job.get('data-job-id')  # Adjust based on actual HTML structure
+                if job_id not in seen_jobs:
+                    seen_jobs.add(job_id)
+                    
+                    job_url = f"https://www.upwork.com/jobs/{job_id}"  # Adjust URL format
+                    job_details = await fetch_job_details(session, job_url)
+                    analysis = await analyze_job(job_details)
+                    
+                    keyboard = InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(text="Write Cover Letter", callback_data=f"cover_{job_id}"),
+                                InlineKeyboardButton(text="Reject", callback_data=f"reject_{job_id}")
+                            ],
+                            [InlineKeyboardButton(text="Apply Now", url=job_url)]
+                        ]
+                    )
+                    
+                    await bot.send_message(
+                        chat_id=int(os.getenv("BOT_CHAT_ID")),
+                        text=f"New Job Found!\n\n{analysis}\n\nJob Link: {job_url}",
+                        reply_markup=keyboard
+                    )
+                    
+        except Exception as e:
+            logger.error(f"Error checking new jobs: {e}")
+
+# Callback handler for cover letter generation
+async def handle_cover_letter(callback_query: types.CallbackQuery):
+    job_id = callback_query.data.split('_')[1]
+    job_url = f"https://www.upwork.com/jobs/{job_id}"  # Adjust URL format
+    
+    async with aiohttp.ClientSession() as session:
+        job_details = await fetch_job_details(session, job_url)
+        cover_letter = await generate_cover_letter(job_details)
+        
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="Apply Now", url=job_url)]]
+        )
+        
+        await callback_query.message.reply(
+            text=f"Here's your cover letter:\n\n{cover_letter}",
+            reply_markup=keyboard
+        )
+    await callback_query.answer()
+
+# Register handlers
+dp.callback_query.register(handle_cover_letter, lambda c: c.data.startswith("cover_"))
+
+# Schedule job checks
+scheduler.add_job(check_new_jobs, 'interval', minutes=30)
+
 # Main function
 async def main():
     # Set bot commands
@@ -125,6 +257,7 @@ async def main():
         BotCommand(command="start", description="Start the bot"),
         BotCommand(command="help", description="Help"),
         BotCommand(command="generate_post", description="Generate a post"),
+        BotCommand(command="check_jobs", description="Check for new jobs now"),
     ])
 
     # Start the scheduler
