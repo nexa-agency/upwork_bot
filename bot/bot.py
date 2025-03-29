@@ -7,6 +7,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.types import BotCommand, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
+from aiogram.client.default import DefaultBotProperties
 
 from middlewares.throttling import ThrottlingMiddleware
 from config import TELEGRAM_TOKEN
@@ -15,7 +16,10 @@ from config import TELEGRAM_TOKEN
 logging.basicConfig(level=logging.INFO)
 
 # Initialize bot and dispatcher
-bot = Bot(token=TELEGRAM_TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(
+    token=TELEGRAM_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)  # Устанавливаем parse_mode через DefaultBotProperties
+)
 dp = Dispatcher()
 
 # Register middleware
