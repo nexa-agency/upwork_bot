@@ -76,9 +76,17 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 async def send_post(chat_id: int, bot: Bot):
     post_text = await generate_post_text()
     image_url = await generate_image()
+    
+    # Create button first
+    button = {"text": "🔄 Regenerate", "callback_data": "regenerate_post"}
+    
+    # Create keyboard with proper structure
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton("🔄 Regenerate", callback_data="regenerate_post")]]
+        inline_keyboard=[[
+            {"text": button["text"], "callback_data": button["callback_data"]}
+        ]]
     )
+    
     await bot.send_photo(
         chat_id=chat_id,
         photo=image_url,
