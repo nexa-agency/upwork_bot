@@ -8,6 +8,7 @@ from aiogram.filters import Command
 import requests
 from dotenv import load_dotenv
 import openai
+from aiogram import Bot  # Import Bot
 
 router = Router()
 
@@ -281,12 +282,9 @@ async def generate_cover_letter_command(message: types.Message):
 # Глобальная переменная для хранения access token (ВНИМАНИЕ: это небезопасно для production)
 ACCESS_TOKEN = None
 
-async def set_bot_commands():
-    await set_bot_commands([
-        Command(command="start", description="Запустить бота"),
-        Command(command="help", description="Помощь"),
-        Command(command="generate_post", description="Сгенерировать пост"),
+async def set_bot_commands(bot: Bot):  # Принимаем bot как аргумент
+    await bot.set_my_commands([
+        types.BotCommand(commands=["start"], description="Запустить бота"),
+        types.BotCommand(commands=["help"], description="Помощь"),
+        types.BotCommand(commands=["generate_post"], description="Сгенерировать пост"),
     ])
-
-# Call the function to set commands
-asyncio.run(set_bot_commands())
